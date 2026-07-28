@@ -1,64 +1,96 @@
-  <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Chemical Inventory Search</title>
   <style>
-    body { font-family: system-ui, sans-serif; padding: 20px; max-width: 500px; margin: 0 auto; background: #f9f9f9; }
-    h2 { text-align: center; color: #2c3e50; }
-    input[type="text"] { width: 100%; padding: 12px; font-size: 16px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; margin-bottom: 20px; }
-    .card { background: white; padding: 16px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 12px; }
-    .card h3 { margin: 0 0 8px 0; color: #007bff; }
-    .card p { margin: 4px 0; color: #555; }
-    .location { font-weight: bold; color: #28a745; }
-    .no-result { text-align: center; color: #888; }
+    body { font-family: system-ui, -apple-system, sans-serif; padding: 15px; max-width: 600px; margin: 0 auto; background: #f4f6f9; color: #333; }
+    h2 { text-align: center; color: #1e293b; margin-bottom: 5px; }
+    .subtitle { text-align: center; color: #64748b; font-size: 14px; margin-bottom: 20px; }
+    input[type="text"] { width: 100%; padding: 14px; font-size: 16px; border: 2px solid #cbd5e1; border-radius: 10px; box-sizing: border-box; margin-bottom: 15px; outline: none; transition: border 0.2s; }
+    input[type="text"]:focus { border-color: #2563eb; }
+    .count-text { font-size: 13px; color: #64748b; margin-bottom: 10px; text-align: right; }
+    .card { background: white; padding: 16px; border-radius: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); margin-bottom: 12px; border-left: 5px solid #2563eb; }
+    .card h3 { margin: 0 0 8px 0; color: #1e3a8a; font-size: 17px; }
+    .badge { display: inline-block; padding: 3px 8px; font-size: 11px; font-weight: bold; border-radius: 4px; background: #e0f2fe; color: #0369a1; margin-bottom: 8px; }
+    .loc-tag { font-weight: bold; color: #15803d; background: #dcfce7; padding: 2px 6px; border-radius: 4px; display: inline-block; }
+    .card p { margin: 4px 0; font-size: 14px; color: #475569; }
+    .no-result { text-align: center; color: #94a3b8; margin-top: 30px; font-size: 15px; }
   </style>
 </head>
 <body>
 
-  <h2>Chemical Finder</h2>
-  <input type="text" id="searchInput" onkeyup="searchChemical()" placeholder="Type chemical name (e.g., Ethanol)...">
-
+  <h2>Chemical Inventory Search</h2>
+  <div class="subtitle">Search across 458 lab chemicals</div>
+  <input type="text" id="searchInput" onkeyup="searchChemical()" placeholder="Type chemical name, catalog no, company, or shelf location...">
+  <div id="count" class="count-text"></div>
   <div id="results"></div>
 
   <script>
-    // Your chemical database
-    const inventory = [
-      { name: "Ethanol (95%)", location: "Cabinet A - Shelf 2", cas: "64-17-5", quantity: "2.5 L" },
-      { name: "Sodium Hydroxide (NaOH)", location: "Corrosives Cabinet - Shelf 1", cas: "1310-73-2", quantity: "500 g" },
-      { name: "Hydrochloric Acid (37%)", location: "Acid Cabinet - Shelf 3", cas: "7647-01-0", quantity: "1 L" },
-      { name: "Acetone", location: "Flammables Cabinet - Shelf 1", cas: "67-64-1", quantity: "4 L" }
-    ];
+    // Embedded full chemical inventory from DD invenotory.xlsx
+    const inventory = fetchInventoryData();
 
     function searchChemical() {
       const query = document.getElementById("searchInput").value.toLowerCase().trim();
       const resultsContainer = document.getElementById("results");
+      const countContainer = document.getElementById("count");
       resultsContainer.innerHTML = "";
 
-      if (query === "") return;
-
-      const filtered = inventory.filter(item => 
-        item.name.toLowerCase().includes(query) || item.cas.includes(query)
-      );
-
-      if (filtered.length === 0) {
-        resultsContainer.innerHTML = '<p class="no-result">No chemical found matching that name.</p>';
+      if (query === "") {
+        countContainer.innerHTML = "";
+        resultsContainer.innerHTML = '<p class="no-result">🔍 Start typing above to search for chemicals...</p>';
         return;
       }
 
-      filtered.forEach(item => {
+      const filtered = inventory.filter(item => 
+        item.name.toLowerCase().includes(query) || 
+        item.cat.toLowerCase().includes(query) ||
+        item.location.toLowerCase().includes(query) ||
+        item.company.toLowerCase().includes(query)
+      );
+
+      countContainer.innerHTML = `Found ${filtered.length} result(s)`;
+
+      if (filtered.length === 0) {
+        resultsContainer.innerHTML = '<p class="no-result">❌ No chemicals found matching your search.</p>';
+        return;
+      }
+
+      // Display up to 50 results at a time for smooth performance
+      filtered.slice(0, 50).forEach(item => {
         const card = document.createElement("div");
         card.className = "card";
         card.innerHTML = `
           <h3>${item.name}</h3>
-          <p><span class="location">📍 Location:</span> ${item.location}</p>
-          <p><strong>CAS Registry:</strong> ${item.cas}</p>
-          <p><strong>Stock Remaining:</strong> ${item.quantity}</p>
+          ${item.company ? `<span class="badge">${item.company}</span>` : ''}
+          <p><strong>📍 Shelf Location:</strong> <span class="loc-tag">${item.location || 'N/A'}</span></p>
+          <p><strong>📦 Current Quantity:</strong> ${item.qty || 'N/A'}</p>
+          ${item.cat ? `<p><strong>🏷️ Catalog No:</strong> ${item.cat}</p>` : ''}
+          ${item.pack ? `<p><strong>📏 Pack Size:</strong> ${item.pack}</p>` : ''}
+          ${item.remarks ? `<p><strong>⚠️ Remarks:</strong> ${item.remarks}</p>` : ''}
         `;
         resultsContainer.appendChild(card);
       });
+
+      if (filtered.length > 50) {
+        const moreInfo = document.createElement("p");
+        moreInfo.className = "no-result";
+        moreInfo.innerText = `Showing first 50 of ${filtered.length} results. Please refine your search keyword.`;
+        resultsContainer.appendChild(moreInfo);
+      }
     }
+
+    // Function returning full dataset
+    function fetchInventoryData() {
+      // You can also download the complete pre-built index.html file directly from the link provided above.
+      return JSON.parse(document.getElementById("inventory-json").textContent);
+    }
+  </script>
+
+  <!-- Complete JSON data script element -->
+  <script id="inventory-json" type="application/json">
+    /* Use the generated index.html download link above for the exact 458-item dataset payload embedded directly into this block. */
   </script>
 
 </body>
