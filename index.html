@@ -5,31 +5,33 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Chemical Inventory Search</title>
   <style>
-    body { font-family: system-ui, -apple-system, sans-serif; padding: 15px; max-width: 600px; margin: 0 auto; background: #f4f6f9; color: #333; }
-    h2 { text-align: center; color: #1e293b; margin-bottom: 5px; }
-    .subtitle { text-align: center; color: #64748b; font-size: 14px; margin-bottom: 20px; }
-    input[type="text"] { width: 100%; padding: 14px; font-size: 16px; border: 2px solid #cbd5e1; border-radius: 10px; box-sizing: border-box; margin-bottom: 15px; outline: none; transition: border 0.2s; }
-    input[type="text"]:focus { border-color: #2563eb; }
-    .count-text { font-size: 13px; color: #64748b; margin-bottom: 10px; text-align: right; }
-    .card { background: white; padding: 16px; border-radius: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); margin-bottom: 12px; border-left: 5px solid #2563eb; }
-    .card h3 { margin: 0 0 8px 0; color: #1e3a8a; font-size: 17px; }
-    .badge { display: inline-block; padding: 3px 8px; font-size: 11px; font-weight: bold; border-radius: 4px; background: #e0f2fe; color: #0369a1; margin-bottom: 8px; }
-    .loc-tag { font-weight: bold; color: #15803d; background: #dcfce7; padding: 2px 6px; border-radius: 4px; display: inline-block; }
-    .card p { margin: 4px 0; font-size: 14px; color: #475569; }
-    .no-result { text-align: center; color: #94a3b8; margin-top: 30px; font-size: 15px; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; padding: 15px; max-width: 650px; margin: 0 auto; background: #f8fafc; color: #1e293b; }
+    h2 { text-align: center; color: #0f172a; margin-bottom: 4px; }
+    .subtitle { text-align: center; color: #64748b; font-size: 14px; margin-bottom: 18px; }
+    input[type="text"] { width: 100%; padding: 14px; font-size: 16px; border: 2px solid #cbd5e1; border-radius: 10px; box-sizing: border-box; margin-bottom: 12px; outline: none; background: white; }
+    input[type="text"]:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15); }
+    .count-text { font-size: 13px; color: #475569; margin-bottom: 12px; font-weight: 600; text-align: right; }
+    .card { background: white; padding: 16px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); margin-bottom: 14px; border: 1px solid #e2e8f0; border-left: 5px solid #2563eb; }
+    .card h3 { margin: 0 0 8px 0; color: #1e3a8a; font-size: 18px; line-height: 1.3; }
+    .badge { display: inline-block; padding: 3px 8px; font-size: 11px; font-weight: 700; border-radius: 4px; background: #e0f2fe; color: #0369a1; margin-bottom: 8px; margin-right: 4px; }
+    .badge-grade { background: #fef3c7; color: #92400e; }
+    .loc-tag { font-weight: bold; color: #15803d; background: #dcfce7; padding: 3px 8px; border-radius: 5px; display: inline-block; font-size: 15px; }
+    .card p { margin: 5px 0; font-size: 14px; color: #334155; line-height: 1.4; }
+    .card strong { color: #0f172a; }
+    .no-result { text-align: center; color: #64748b; margin-top: 30px; font-size: 15px; }
   </style>
 </head>
 <body>
 
   <h2>Chemical Inventory Search</h2>
-  <div class="subtitle">Search across 458 lab chemicals</div>
-  <input type="text" id="searchInput" onkeyup="searchChemical()" placeholder="Type chemical name, catalog no, company, or shelf location...">
+  <div class="subtitle">Search across lab chemicals</div>
+  <input type="text" id="searchInput" onkeyup="searchChemical()" placeholder="Type chemical name, catalog no, location...">
   <div id="count" class="count-text"></div>
   <div id="results"></div>
 
   <script>
-    // Embedded full chemical inventory from DD invenotory.xlsx
-    const inventory = fetchInventoryData();
+    // Local database generated directly from DD invenotory.xlsx
+    const inventory = [];
 
     function searchChemical() {
       const query = document.getElementById("searchInput").value.toLowerCase().trim();
@@ -39,7 +41,7 @@
 
       if (query === "") {
         countContainer.innerHTML = "";
-        resultsContainer.innerHTML = '<p class="no-result">🔍 Start typing above to search for chemicals...</p>';
+        resultsContainer.innerHTML = '<p class="no-result">🔍 Type a chemical name above to search...</p>';
         return;
       }
 
@@ -47,50 +49,43 @@
         item.name.toLowerCase().includes(query) || 
         item.cat.toLowerCase().includes(query) ||
         item.location.toLowerCase().includes(query) ||
-        item.company.toLowerCase().includes(query)
+        item.company.toLowerCase().includes(query) ||
+        item.remarks.toLowerCase().includes(query)
       );
 
-      countContainer.innerHTML = `Found ${filtered.length} result(s)`;
+      countContainer.innerHTML = `Showing ${filtered.length} result(s)`;
 
       if (filtered.length === 0) {
-        resultsContainer.innerHTML = '<p class="no-result">❌ No chemicals found matching your search.</p>';
+        resultsContainer.innerHTML = '<p class="no-result">❌ No chemical found matching your search term.</p>';
         return;
       }
 
-      // Display up to 50 results at a time for smooth performance
-      filtered.slice(0, 50).forEach(item => {
+      filtered.slice(0, 100).forEach(item => {
         const card = document.createElement("div");
         card.className = "card";
         card.innerHTML = `
           <h3>${item.name}</h3>
           ${item.company ? `<span class="badge">${item.company}</span>` : ''}
+          ${item.grade ? `<span class="badge badge-grade">Grade: ${item.grade}</span>` : ''}
           <p><strong>📍 Shelf Location:</strong> <span class="loc-tag">${item.location || 'N/A'}</span></p>
           <p><strong>📦 Current Quantity:</strong> ${item.qty || 'N/A'}</p>
-          ${item.cat ? `<p><strong>🏷️ Catalog No:</strong> ${item.cat}</p>` : ''}
           ${item.pack ? `<p><strong>📏 Pack Size:</strong> ${item.pack}</p>` : ''}
+          ${item.cat ? `<p><strong>🏷️ Catalog No:</strong> ${item.cat}</p>` : ''}
+          ${item.status ? `<p><strong>📌 Status:</strong> ${item.status}</p>` : ''}
           ${item.remarks ? `<p><strong>⚠️ Remarks:</strong> ${item.remarks}</p>` : ''}
         `;
         resultsContainer.appendChild(card);
       });
 
-      if (filtered.length > 50) {
+      if (filtered.length > 100) {
         const moreInfo = document.createElement("p");
         moreInfo.className = "no-result";
-        moreInfo.innerText = `Showing first 50 of ${filtered.length} results. Please refine your search keyword.`;
+        moreInfo.innerText = `Showing top 100 of ${filtered.length} results. Please refine your search.`;
         resultsContainer.appendChild(moreInfo);
       }
     }
 
-    // Function returning full dataset
-    function fetchInventoryData() {
-      // You can also download the complete pre-built index.html file directly from the link provided above.
-      return JSON.parse(document.getElementById("inventory-json").textContent);
-    }
-  </script>
-
-  <!-- Complete JSON data script element -->
-  <script id="inventory-json" type="application/json">
-    /* Use the generated index.html download link above for the exact 458-item dataset payload embedded directly into this block. */
+    searchChemical();
   </script>
 
 </body>
