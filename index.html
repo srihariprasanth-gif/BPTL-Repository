@@ -1,0 +1,65 @@
+  <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chemical Inventory Search</title>
+  <style>
+    body { font-family: system-ui, sans-serif; padding: 20px; max-width: 500px; margin: 0 auto; background: #f9f9f9; }
+    h2 { text-align: center; color: #2c3e50; }
+    input[type="text"] { width: 100%; padding: 12px; font-size: 16px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; margin-bottom: 20px; }
+    .card { background: white; padding: 16px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 12px; }
+    .card h3 { margin: 0 0 8px 0; color: #007bff; }
+    .card p { margin: 4px 0; color: #555; }
+    .location { font-weight: bold; color: #28a745; }
+    .no-result { text-align: center; color: #888; }
+  </style>
+</head>
+<body>
+
+  <h2>Chemical Finder</h2>
+  <input type="text" id="searchInput" onkeyup="searchChemical()" placeholder="Type chemical name (e.g., Ethanol)...">
+
+  <div id="results"></div>
+
+  <script>
+    // Your chemical database
+    const inventory = [
+      { name: "Ethanol (95%)", location: "Cabinet A - Shelf 2", cas: "64-17-5", quantity: "2.5 L" },
+      { name: "Sodium Hydroxide (NaOH)", location: "Corrosives Cabinet - Shelf 1", cas: "1310-73-2", quantity: "500 g" },
+      { name: "Hydrochloric Acid (37%)", location: "Acid Cabinet - Shelf 3", cas: "7647-01-0", quantity: "1 L" },
+      { name: "Acetone", location: "Flammables Cabinet - Shelf 1", cas: "67-64-1", quantity: "4 L" }
+    ];
+
+    function searchChemical() {
+      const query = document.getElementById("searchInput").value.toLowerCase().trim();
+      const resultsContainer = document.getElementById("results");
+      resultsContainer.innerHTML = "";
+
+      if (query === "") return;
+
+      const filtered = inventory.filter(item => 
+        item.name.toLowerCase().includes(query) || item.cas.includes(query)
+      );
+
+      if (filtered.length === 0) {
+        resultsContainer.innerHTML = '<p class="no-result">No chemical found matching that name.</p>';
+        return;
+      }
+
+      filtered.forEach(item => {
+        const card = document.createElement("div");
+        card.className = "card";
+        card.innerHTML = `
+          <h3>${item.name}</h3>
+          <p><span class="location">📍 Location:</span> ${item.location}</p>
+          <p><strong>CAS Registry:</strong> ${item.cas}</p>
+          <p><strong>Stock Remaining:</strong> ${item.quantity}</p>
+        `;
+        resultsContainer.appendChild(card);
+      });
+    }
+  </script>
+
+</body>
+</html>
